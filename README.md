@@ -157,9 +157,9 @@ imu-gesture-drone-control/
 
 ## Team
 
-- Member 1 — Embedded Systems  
-- Member 2 — Machine Learning  
-- Member 3 — Integration  
+- Anjali Kanvinde — Embedded Systems & Hardware Integration  
+- Vaikunth Elango —  Gesture Recognition & Data Processing
+- Sribatscha Maharana —  System Integration & Application Development  
 
 ---
 
