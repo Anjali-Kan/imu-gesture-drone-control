@@ -114,6 +114,16 @@ pip install -r requirements.txt
 python src/main.py
 ```
 
+The current `src/control` implementation is sourced from the working
+`djitellopy`-based controller pattern used in:
+- `../Drone-Handcontrol/tello_controller.py`
+- `../Drone-Demo-Final/utils/tello_controller.py`
+
+Those were a better fit for this project than the raw UDP demo controllers in
+`../Drone-Demo-230/drone-swarm/drone.py` and `../tello-demo/two/drone2.py`
+because they already expose a reusable Python controller class around the Tello
+SDK.
+
 ---
 
 ## Project Structure
@@ -128,11 +138,24 @@ imu-gesture-drone-control/
 │   ├── features/
 │   ├── models/
 │   ├── inference/
-│   └── control/
+│   ├── control/
+│   │   ├── tello_controller.py
+│   │   └── gesture_bridge.py
+│   └── main.py
 ├── docs/
 ├── requirements.txt
 └── README.md
 ```
+
+## Control Layer
+
+- `src/control/tello_controller.py` contains the reusable `TelloController`
+  wrapper for connect, takeoff, land, video, and RC control.
+- `src/control/gesture_bridge.py` contains `TelloGestureBridge`, which maps
+  keyboard input into drone actions (replace with IMU)
+- The current flow - keyboard input runs in a
+  background thread while the Tello camera stream is rendered on the main
+  thread with OpenCV.
 
 ---
 
