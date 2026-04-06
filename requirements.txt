@@ -1,0 +1,7 @@
+djitellopy
+opencv-python
+pynput
+numpy
+pyserial
+scikit-learn
+matplotlib

@@ -18,7 +18,6 @@ except ImportError:  # pragma: no cover - surfaced at runtime
 
 @dataclass(frozen=True)
 class RCCommand:
-    """Continuous control values for the Tello RC interface."""
 
     lr: int = 0
     fb: int = 0
@@ -27,7 +26,6 @@ class RCCommand:
 
 
 class TelloController:
-    """Thin, project-friendly wrapper around djitellopy's Tello client."""
 
     def __init__(self, enable_video: bool = False) -> None:
         self.enable_video = enable_video
@@ -36,7 +34,6 @@ class TelloController:
         self.connected = False
 
     def connect(self) -> int:
-        """Connect to the drone and optionally start the video stream."""
         if Tello is None:
             raise ImportError(
                 "djitellopy is required for TelloController. "
@@ -80,7 +77,6 @@ class TelloController:
         return self._require_connection().get_battery()
 
     def get_frame(self):
-        """Return the latest camera frame when video streaming is enabled."""
         if not self.enable_video:
             raise RuntimeError("Video is disabled for this controller instance.")
         if self.frame_reader is None:
@@ -142,18 +138,17 @@ class TelloController:
         self.send_rc(RCCommand())
 
     def cleanup(self) -> None:
-        """Shut down video and window state without forcing a land command."""
         if self.drone is None:
             return
 
         try:
             if getattr(self.drone, "stream_on", False):
                 self.drone.streamoff()
-        except Exception as exc:  # pragma: no cover - hardware dependent
+        except Exception as exc:  
             print(f"[TELLO] Failed to stop stream: {exc}")
 
         if cv2 is not None:
             try:
                 cv2.destroyAllWindows()
-            except Exception as exc:  # pragma: no cover - UI dependent
+            except Exception as exc: 
                 print(f"[TELLO] Failed to close OpenCV windows: {exc}")
