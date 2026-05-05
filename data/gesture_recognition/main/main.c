@@ -53,7 +53,7 @@ static const char *TAG = "gesture_capture";
 #define SAMPLE_PERIOD_US    (1000000 / SAMPLE_RATE_HZ)
  */
 
-#define ARM_COMMAND "ARM" // select command to input for gesture recognition, use "" for Enter key only
+#define ARM_COMMAND "" // select command to input for gesture recognition, use "" for Enter key only
 #define CSV_COMMAND "CSV"
 
 #define CMD_UART UART_NUM_0
@@ -207,9 +207,9 @@ void app_main(void)
         }
 
         if (ch == '\r' || ch == '\n') {
-            if (idx == 0) {
-                continue;
-            }
+            //if (idx == 0) {
+            //    continue;
+            //}
 
             cmd[idx] = '\0';
             idx = 0;
