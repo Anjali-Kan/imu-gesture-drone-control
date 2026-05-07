@@ -49,7 +49,7 @@ def render_progress(elapsed_s: float, total_s: float) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Capture triggered 2-second IMU gesture windows.")
     parser.add_argument("gesture", help="Label prefix, e.g. up, down, none, circle_cw")
-    parser.add_argument("--port", default="COM9")
+    parser.add_argument("--port", default="COM5")
     parser.add_argument("--baud", type=int, default=115200)
     parser.add_argument("--folder", default=OUT_FOLDER)
     parser.add_argument("--last-time-us", type=int, default=DEFAULT_LAST_TIME_US)

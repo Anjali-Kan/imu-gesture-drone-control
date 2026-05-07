@@ -11,7 +11,7 @@
 #define IMU_CHANNELS 6
 #define FEATURES_PER_CHANNEL 10
 #define UNKNOWN_SCORE_THRESHOLD 0.40f
-#define UNKNOWN_MARGIN_THRESHOLD 0.60f
+#define UNKNOWN_MARGIN_THRESHOLD 0.3f
 
 typedef struct {
     float ax;
