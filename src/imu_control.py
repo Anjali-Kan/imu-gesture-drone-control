@@ -54,7 +54,7 @@ GESTURE_MAP: dict[str, str] = {
     "down":             "move_down",
     "clockwise":        "yaw_right",
     "counterclockwise": "yaw_left",
-    "none":             "move_forward",
+    "none":             "hover",
     "unknown":          "hover",
 }
 
