@@ -1,128 +1,139 @@
-# IMU Gesture Drone Control
+# Gesture Flight — IMU Gesture-Controlled Drone
 
 ![Python](https://img.shields.io/badge/Python-3.9+-blue)
 ![Platform](https://img.shields.io/badge/Platform-ESP32--S3-green)
-![Status](https://img.shields.io/badge/Status-In%20Progress-yellow)
+![Status](https://img.shields.io/badge/Status-Complete-brightgreen)
 ![License](https://img.shields.io/badge/License-Academic-lightgrey)
 
-Wearable IMU-based hand gesture interface for intuitive, real-time drone control using natural hand motions.
+**CS 528 — Mobile and Ubiquitous Computing | UMass Amherst**  
+Anjali Kanvinde · Sribatscha Maharana · Vaikunth Elango
 
 ---
 
-## Table of Contents
+> *"The most profound technologies are those that disappear into the fabric of everyday life."*  
+> — Mark Weiser, The Computer for the 21st Century, SIGMOBILE 1999
 
-- Overview  
-- Demo  
-- System Architecture  
-- Features  
-- Tech Stack  
-- Hardware Setup  
-- Software Setup  
-- Usage  
-- Project Structure  
-- Results  
-- Roadmap  
-- Team  
-- License  
-
----
-
-## Overview
-
-This project implements a wearable human–computer interaction system that enables users to control a drone using hand gestures. An IMU sensor captures motion data, which is processed in real time to recognize gestures and map them to drone commands.
-
-The system focuses on:
-- Natural interaction design
-- Real-time sensing and control
-- Embedded systems and signal processing
-- Human activity recognition
+A wearable IMU-based hand gesture recognition system for intuitive drone control using real-time motion sensing and embedded processing.
 
 ---
 
 ## Demo
 
-Add a demo video or GIF here.
-
+▶ [YouTube Demo](https://youtu.be/y-GpIlMdAIA) &nbsp;|&nbsp;
 ---
 
-## System Architecture
+## How It Works
 
 ```
-[ IMU Sensor ]
-      ↓
-[ ESP32-S3 Microcontroller ]
-      ↓
-[ Wireless Transmission ]
-      ↓
-[ Gesture Recognition (Python) ]
-      ↓
-[ Command Mapping ]
-      ↓
-[ Drone Control ]
+MPU6050 (on hand)
+    ↓  I2C
+ESP32-S3  →  captures 500 samples @ 250Hz over 2s
+             extracts 60 features (10 stats × 6 channels)
+             Linear SVM classifies gesture on-device
+    ↓  USB Serial  →  PREDICTED:forward
+Laptop (imu_control.py)
+    ↓  WiFi
+Tello Drone  →  send_rc() for 0.8s
 ```
 
----
-
-## Features
-
-- Real-time IMU data streaming (accelerometer and gyroscope)
-- Gesture recognition using machine learning or signal processing
-- Continuous motion-based control using gesture intensity
-- Low-latency communication pipeline
-- Safety mechanisms (gesture confirmation and emergency stop)
-- Live visualization of sensor data and predictions
+The SVM runs entirely on the ESP32. There is no cloud, no serverand thus no latency beyond the capture window. This is edge ML: the classifier is a single matrix multiply implemented in C, small enough to fit in a microcontroller's flash alongside the sensor firmware.
 
 ---
 
-## Tech Stack
+## Gesture Set (8 commands + none)
 
-**Hardware**
-- ESP32-S3
-- MPU6050 or BNO055 IMU
-- Programmable drone
+| Gesture | Drone Command |
+|---|---|
+| Forward | Fly forward |
+| Backward | Fly backward |
+| Left | Fly left |
+| Right | Fly right |
+| Up | Fly up |
+| Down | Fly down |
+| Clockwise | Yaw right |
+| Counterclockwise | Yaw left |
+| None | Hover (no command) |
 
-**Software**
-- Python
-- scikit-learn
-- NumPy
-- PySerial / Bluetooth
-- Matplotlib or Streamlit
+---
+
+## Classifier Results
+
+5-fold cross-validation on 30 samples × 9 classes (270 total):
+
+| Model | CV Accuracy |
+|---|---|
+| **Linear SVM** | **98.5%** ← deployed |
+| Random Forest | 98.9% |
+| k-Nearest Neighbors | 96.3% |
+
+We chose Linear SVM over Random Forest despite slightly lower offline accuracy because it maps directly to a single matrix multiply + bias, making it implementable in ~100 lines of C with no external libraries : critical for on-device ESP32 deployment where RAM is limited.
+
+![Model Accuracy Comparison](report/figures/accuracy_comparison.png)
+
+### Linear SVM Confusion Matrix (deployed model)
+
+![Linear SVM Confusion Matrix](report/figures/cm_linear_svm.png)
+
+Forward/backward confusion was the hardest pair — resolved by standardizing gesture execution speed and range of motion relative to the training data.
 
 ---
 
 ## Hardware Setup
 
-1. Connect IMU to ESP32 via I²C  
-2. Mount IMU on glove or wristband  
+| MPU6050 Pin | ESP32-S3 Pin |
+|---|---|
+| VCC | 3.3V |
+| GND | GND |
+| SDA | GPIO 0 |
+| SCL | GPIO 1 |
+
+Mount the sensor flat on the back of your hand, chip facing up, USB port toward the wrist. **Orientation is a model parameter** — the classifier was trained in this exact position and must be used in the same orientation.
 
 ---
 
 ## Software Setup
 
 ```bash
-git clone https://github.com/yourteam/imu-gesture-drone-control
+git clone https://github.com/Anjali-Kan/imu-gesture-drone-control
 cd imu-gesture-drone-control
-
 pip install -r requirements.txt
+```
+
+**Flash the ESP32 firmware:**
+1. Open `data/gesture_recognition/` in VS Code with the ESP-IDF extension
+2. Select your serial port in the status bar
+3. Click the flash button (⚡)
+
+**Find your serial port (Mac):**
+```bash
+ls /dev/cu.*
 ```
 
 ---
 
 ## Usage
 
+**ARM mode** — on-device C SVM (recommended, no Python model needed):
 ```bash
-python src/main.py
+python src/imu_control.py --port /dev/cu.usbserial-XXXX --mode arm
 ```
 
-The current `src/control` implementation is sourced from the working
-`djitellopy`-based controller pattern used in:
-- `../Drone-Handcontrol/tello_controller.py`
-- `../Drone-Demo-Final/utils/tello_controller.py`
+**CSV mode** — Python SVM inference (requires trained `.pkl` model):
+```bash
+python src/imu_control.py --port /dev/cu.usbserial-XXXX --mode csv
+```
 
-Those were a better fit for this project than the raw UDP demo controllers in
-`../Drone-Demo-230/drone-swarm/drone.py` and `../tello-demo/two/drone2.py`
-because they already expose a reusable Python controller class around the Tello
-SDK.
+**Keyboard controls (always active):**
+- `T` — takeoff
+- `N` — land  
+- `ESC` — emergency stop + quit
+
+**Optional flags:**
+```
+--no-video     skip Tello video stream
+--speed N      RC speed 0–100 (default: 40)
+--rest N       seconds between captures (default: 3)
+```
 
 ---
 
@@ -130,62 +141,37 @@ SDK.
 
 ```
 imu-gesture-drone-control/
-├── firmware/
 ├── data/
-├── notebooks/
+│   └── gesture_recognition/       # ESP32 ESP-IDF firmware project
+│       └── main/
+│           ├── main.c             # IMU capture + ARM/CSV command loop
+│           ├── gesture_inference_template.c  # SVM inference in C
+│           └── gesture_model_params.h        # Trained weights as C arrays
 ├── src/
-│   ├── preprocessing/
-│   ├── features/
-│   ├── models/
-│   ├── inference/
-│   ├── control/
-│   │   ├── tello_controller.py
-│   │   └── gesture_bridge.py
-│   └── main.py
-├── docs/
-├── requirements.txt
-└── README.md
+│   ├── imu_control.py             # Main entrypoint — serial reader + drone control
+│   ├── gesture_recognition.py     # Feature extraction (matches C implementation)
+│   └── control/
+│       ├── tello_controller.py    # djitellopy wrapper
+│       └── gesture_bridge.py      # RC command bridge + keyboard fallback
+├── report/
+│   ├── compare_models.py          # Training + cross-validation script
+│   └── figures/                   # Confusion matrices + accuracy charts
+└── requirements.txt
 ```
 
-## Control Layer
+---
 
-- `src/control/tello_controller.py` contains the reusable `TelloController`
-  wrapper for connect, takeoff, land, video, and RC control.
-- `src/control/gesture_bridge.py` contains `TelloGestureBridge`, which maps
-  keyboard input into drone actions (replace with IMU)
-- The current flow - keyboard input runs in a
-  background thread while the Tello camera stream is rendered on the main
-  thread with OpenCV.
+## Known Limitations
+
+- **2-second capture window** — each gesture cycle takes ~5s total (2s capture + 3s rest). Not suitable for fast reactive control.
+- **Single-user model** — trained on one person's gesture data. Inter-user accuracy will be lower.
+- **2.4GHz interference** — Tello's WiFi hotspot can interfere with ESP32's radio. If predictions degrade when drone is connected, add `esp_wifi_stop()` to firmware before the main loop.
+- **Consistent execution required** — gestures must match the speed and range of motion used during training.
 
 ---
 
-## Results
+## Tech Stack
 
-- Real-time gesture recognition achieved  
-- Multiple gestures mapped to drone commands  
-- Stable control using motion intensity  
-
----
-
-## Roadmap
-
-- [x] IMU data acquisition  
-- [x] Data visualization  
-- [ ] Gesture dataset collection  
-- [ ] Gesture classification model  
-- [ ] Drone integration  
-- [ ] Final system demo  
-
----
-
-## Team
-
-- Anjali Kanvinde — Embedded Systems & Hardware Integration  
-- Vaikunth Elango —  Gesture Recognition & Data Processing
-- Sribatscha Maharana —  System Integration & Application Development  
-
----
-
-## License
-
-This project is for academic and educational use.
+**Hardware:** ESP32-S3, MPU6050, DJI Tello  
+**Firmware:** C, ESP-IDF  
+**Python:** scikit-learn, NumPy, pyserial, djitellopy, opencv-python, pynput
